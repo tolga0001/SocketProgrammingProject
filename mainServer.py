@@ -17,10 +17,11 @@ def start_server(server_port_number = 8080):
             client_thread.start()
 
     except Exception as e:
-        print(f"Error: {e}")
+        #print(f"Error: {e}")
+        pass
 
 if __name__ == "__main__":
-    # b) Your server program should take single argument which specifies the port number.
+    #b) Your server program should take single argument which specifies the port number.
     if len(sys.argv) != 2:
         print("Usage: python mainServer.py <port number>")
         sys.exit(1)
