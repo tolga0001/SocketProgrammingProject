@@ -45,41 +45,11 @@ class RequestHandler:
         raise HTTPErrorResponse(code, message)  # Raising the response to be handled by the TCP client
 
     def generate_HTML(self):
-        html_template = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Web Server Response</title>
-            <!-- Add the favicon reference here -->
-            <link rel="icon" href="/favicon.ico" />
-            <style>
-                body {{
-                    font-family: Arial, sans-serif;
-                    margin: 20px;
-                    padding: 20px;
-                    background-color: #f4f4f9;
-                    color: #333;
-                }}
-                h1 {{
-                    color: #007BFF;
-                }}
-                p {{
-                    font-size: 18px;
-                }}
-            </style>
-        </head>
-        <body>
-            <h1>Welcome to the Web Server</h1>
-            <p>The requested URI is: <strong>{self.URI}</strong></p>
-            <p>Processed URI size: <strong>{self.URI_size}</strong></p>
-        </body>
-        </html>
-        """
-        return html_template
-
-
-
-
+        header = "<HTML>\n<HEAD>\n<TITLE>Computer Networks Project</TITLE>\n</HEAD>\n<BODY>\n"
+        footer = "</BODY>\n</HTML>\n"
+        filler = "A" * (self.URI_size - len(header + footer))
+        print(f"LENGTH IS ----------- {len(header+footer)}")
+        return header + filler[:self.URI_size - len(header + footer)] + footer
 
 
 
