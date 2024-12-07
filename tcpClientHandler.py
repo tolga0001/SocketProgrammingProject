@@ -1,5 +1,5 @@
 from pickletools import bytes_types
-from webServer import WebServer
+from requestHandler import WebServer
 
 from exceptions import HTTPErrorResponse
 
