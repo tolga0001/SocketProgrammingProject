@@ -1,4 +1,3 @@
-from pickletools import bytes_types
 from requestHandler import RequestHandler
 from exceptions import HTTPErrorResponse
 
