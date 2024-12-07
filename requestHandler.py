@@ -1,7 +1,7 @@
 from exceptions import BadRequestException, NotImplementedException, HTTPErrorResponse
 from socket import *
 
-class WebServer:
+class RequestHandler:
     def __init__(self, URI) -> None:
         try:
             self.URI = URI

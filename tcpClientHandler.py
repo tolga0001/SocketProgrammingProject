@@ -1,5 +1,5 @@
 from pickletools import bytes_types
-from requestHandler import WebServer
+from requestHandler import RequestHandler
 
 from exceptions import HTTPErrorResponse
 
@@ -14,7 +14,7 @@ def TCP_client(connection_socket):
         log_message("Received request", request.strip())
         # create web server to handle request
         # all the controllers are in the constructor. If there's an exception inside all of them are raised by HTTPErrorResponse to get handled here
-        web_server = WebServer(request)
+        web_server = RequestHandler(request)
         html_file = web_server.generate_HTML()
         # Send a response back to the client
         response = (
