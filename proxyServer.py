@@ -62,7 +62,7 @@ def start_proxy(main_server_port):
 if __name__ == "__main__":
     #b) Your server program should take single argument which specifies the port number.
     if len(sys.argv) != 2:
-        print("Usage: python mainServer.py <port number>")
+        print("Usage: python proxyServer.py <port number>")
         sys.exit(1)
 
     # it's common to use ports in the registered range (1024–65535) to avoid conflicts with well-known ports
