@@ -25,7 +25,7 @@ def handle_client(client_socket, main_server_port):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as main_server_socket:
             main_server_socket.connect(('localhost', main_server_port))
             main_server_socket.sendall(client_request.encode())
-            
+            print("main port: ", main_server_port)
             # Receive the response from the main server
             server_response = main_server_socket.recv(4096)
             
@@ -57,8 +57,7 @@ def start_proxy(main_server_port):
             client_thread = threading.Thread(target=handle_client, args=(client_socket, main_server_port))
             client_thread.start()
 
-if __name__ == "__main__":
-    start_proxy()
+
 
 if __name__ == "__main__":
     #b) Your server program should take single argument which specifies the port number.
