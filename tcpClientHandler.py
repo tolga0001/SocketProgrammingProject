@@ -22,11 +22,12 @@ def TCP_client(connection_socket):
             "Connection: close\r\n\r\n"
             f"{html_file}"
         )
+
         connection_socket.sendall(response.encode('utf-8'))
         log_message("Response", "200 OK sent successfully")
     except HTTPErrorResponse as e:
         connection_socket.sendall(e.response.encode('utf-8'))
-        log_message("HTTP Error", f"{e.code} {e.message}")
+        log_message("HTTP Error", f"{e.code} {e.error_type} {e.error_message.value}")
     except Exception as e:
         log_message("Error", f"Unexpected error: {str(e)}")
     finally:

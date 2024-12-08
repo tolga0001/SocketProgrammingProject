@@ -1,22 +1,28 @@
+from errorMessages import ErrorMessages
+
+
 class BadRequestException (Exception):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, error_message: ErrorMessages):
+        self.error_message = error_message
+        super().__init__(self.error_message.value)
 
     def __str__(self):
         return "400 Bad Request"
         
 class NotImplementedException (Exception):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, message="Feature not implemented"):
+        self.message = message
+        super().__init__(self.message)
 
     def __str__(self):
         return "501 Not Implemented"
 
 
 class HTTPErrorResponse(Exception):
-    def __init__(self, code, message):
+    def __init__(self, code, error_type,error_message: ErrorMessages):
         self.code = code
-        self.message = message
+        self.error_type = error_type
+        self.error_message = error_message
         # Generate the HTML content for the error page
         self.error_page = f"""
         <!DOCTYPE html>
@@ -41,13 +47,15 @@ class HTTPErrorResponse(Exception):
         </head>
         <body>
             <h1>Error {self.code}</h1>
-            <p>{self.message}</p>
+            <p>{self.error_type}</p>
+            <p>{self.error_message.value}</p>
+            
         </body>
         </html>
         """
         # Construct the HTTP response
         self.response = (
-                f"HTTP/1.1 {self.code} {self.message}\r\n"
+                f"HTTP/1.1 {self.code} {self.error_type}\r\n"
                 "Content-Type: text/html\r\n"
                 f"Content-Length: {len(self.error_page.encode('utf-8'))}\r\n\r\n"
                 + self.error_page
