@@ -5,7 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e6a19303-97d9-4e93-b1d8-4d4a28f0c9b1" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/SocketProgrammingProject.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/errorMessages.py" beforeDir="false" afterPath="$PROJECT_DIR$/errorMessages.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mainServer.py" beforeDir="false" afterPath="$PROJECT_DIR$/mainServer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/proxyServer.py" beforeDir="false" afterPath="$PROJECT_DIR$/proxyServer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requestHandler.py" beforeDir="false" afterPath="$PROJECT_DIR$/requestHandler.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -41,6 +46,7 @@
     &quot;Python.exceptions.executor&quot;: &quot;Run&quot;,
     &quot;Python.main.executor&quot;: &quot;Run&quot;,
     &quot;Python.mainServer.executor&quot;: &quot;Run&quot;,
+    &quot;Python.proxyServer.executor&quot;: &quot;Run&quot;,
     &quot;Python.requestHandler.executor&quot;: &quot;Run&quot;,
     &quot;Python.tcpClientHandler.executor&quot;: &quot;Run&quot;,
     &quot;Python.webServer.executor&quot;: &quot;Run&quot;,

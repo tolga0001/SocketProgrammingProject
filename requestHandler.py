@@ -1,6 +1,6 @@
 from errorMessages import ErrorMessages
 from exceptions import BadRequestException, NotImplementedException, HTTPErrorResponse
-from socket import *
+
 
 class RequestHandler:
     def __init__(self, URI) -> None:
@@ -11,13 +11,12 @@ class RequestHandler:
             URI_size = self.extract_URI_size(self.URI)
             if self.is_URI_size_valid(URI_size):
                 self.URI_size = URI_size
-               # print(f"URI = {self.URI}, size = {self.URI_size}")
             else:
-                #print('satır 21')
+
                 raise BadRequestException(ErrorMessages.INVALID_URL_SIZE)
             
         except NotImplementedException:
-            self.raise_http_error(501, "Not Implemented")
+            self.raise_http_error(501, "Not Implemented",ErrorMessages.NOT_IMPLEMENTED)
         except BadRequestException as e:
             #print("21")
             self.raise_http_error(400, "Bad Request", e.error_message)
@@ -26,12 +25,14 @@ class RequestHandler:
         return 100 <= URI_size <= 20000
     
     def extract_URI_size(self, URI) -> int:
-        URI_size = URI.split(" ")[1][1:]
-        #print(URI)
+        if 'http' in URI:
+            URI_size = URI.split(" ")[1].split("/")[3]
+        else:
+            URI_size = URI.split(" ")[1][1:]
+
         if URI_size.isnumeric():
             return int(URI_size)
         else:
-            #print("33")
             raise BadRequestException(ErrorMessages.INVALID_URL_SIZE_FORMAT)
         
     def is_request_message_valid(self, URI):

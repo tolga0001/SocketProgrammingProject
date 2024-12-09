@@ -1,6 +1,7 @@
 import socket
 import threading
-from tcpClientHandler import TCP_client
+
+from errorMessages import ErrorMessages
 import sys
 from exceptions import HTTPErrorResponse
 
@@ -16,14 +17,15 @@ def handle_client(client_socket, main_server_port):
         client_request = client_socket.recv(4096).decode()
         if not client_request:
             return
-        
-        print(f"Received request from client:\n{client_request}\n")
+
+
+        print(f"Received request from client: {client_request}\n")
 
         # Parse the request (omitted for brevity, refer to the full code above)
 
         # Forward the request to the main server
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as main_server_socket:
-            main_server_socket.connect(('localhost', main_server_port))
+            main_server_socket.connect(('', main_server_port))
             main_server_socket.sendall(client_request.encode())
             print("main port: ", main_server_port)
             # Receive the response from the main server
@@ -51,23 +53,29 @@ def start_proxy(main_server_port):
         print(f"Proxy server running on {PROXY_HOST}:{PROXY_PORT}...")
 
         while True:
+            #print("Its waiting to take request...")
             client_socket, client_address = proxy_socket.accept()
-            print(f"Accepted connection from {client_address}")
+            #print(f"Accepted connection from {client_address}")
             # Handle the client request in a new thread
             client_thread = threading.Thread(target=handle_client, args=(client_socket, main_server_port))
             client_thread.start()
 
-
-
 if __name__ == "__main__":
     #b) Your server program should take single argument which specifies the port number.
-    if len(sys.argv) != 2:
-        print("Usage: python proxyServer.py <port number>")
-        sys.exit(1)
-
-    # it's common to use ports in the registered range (1024–65535) to avoid conflicts with well-known ports
-    if 1024 <= int(sys.argv[1]) <= 65535:
-        server_port_number = int(sys.argv[1])
-        start_proxy(server_port_number)
-    else:
-        raise HTTPErrorResponse(400, "Bad Request")
+    try:
+        # Ensure the port number is passed as an argument
+        if len(sys.argv) != 2:
+            print("Usage: python proxyServer.py <port number>")
+        else:
+            # Check if the port number is within the valid range (1024–65535)
+            port_number = int(sys.argv[1])
+            if 1024 <= port_number <= 65535:
+                start_proxy(port_number)
+            else:
+                raise HTTPErrorResponse(400, "Bad Request", ErrorMessages.INVALID_PORT_NUMBER)
+    except HTTPErrorResponse as e:
+        print("HTTP Error:", f"{e.code} {e.error_type} {e.error_message.value}")
+    except ValueError:
+        print("Error: Invalid port number format. Please provide an integer.")
+    except Exception as e:
+        print("Unexpected error:", str(e))
