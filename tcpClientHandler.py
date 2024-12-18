@@ -15,14 +15,20 @@ def TCP_client(connection_socket):
         html_file = web_server.generate_HTML()
 
         # Build successful response
+        #check that the html file size
+        print(f"html file size is{len(html_file)} byte")
+        if len(html_file) %2 == 0:
+            info_header= "200 OK\r\n"
+        else:
+            info_header = "304 Not Modified\r\n"
+
         response = (
-            "HTTP/1.1 200 OK\r\n"
+            f"HTTP/1.1 {info_header}"
             "Content-Type: text/html\r\n"
             f"Content-Length: {len(html_file.encode('utf-8'))}\r\n"
             "Connection: close\r\n\r\n"
             f"{html_file}"
         )
-
         connection_socket.sendall(response.encode('utf-8'))
         log_message("Response", "200 OK sent successfully")
     except HTTPErrorResponse as e:
