@@ -1,0 +1,10 @@
+HTTP/1.1 302 Found
+Date: Fri, 13 Dec 2024 12:54:50 GMT
+Content-Type: text/plain; charset=utf-8
+Content-Length: 51
+Connection: keep-alive
+Server: nginx
+Location: https://docs.postman-echo.com
+Vary: Accept
+
+Found. Redirecting to https://docs.postman-echo.com
