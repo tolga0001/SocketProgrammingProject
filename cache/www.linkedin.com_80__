@@ -1,0 +1,15 @@
+HTTP/1.1 301 Moved Permanently
+Cache-Control: no-cache, no-store
+Pragma: no-cache
+Expires: Thu, 01 Jan 1970 00:00:00 GMT
+Location: https://www.linkedin.com/hp
+Set-Cookie: bcookie="v=2&93307971-7035-4c9c-82a8-24fc2836c981"; domain=.linkedin.com; Path=/; Secure; Expires=Tue, 23-Dec-2025 17:23:05 GMT; SameSite=None
+X-Li-Fabric: prod-lva1
+X-Li-Pop: afd-prod-lva1-x
+X-Li-Proto: http/1.1
+X-LI-UUID: AAYp8z/eAP38I9+pG0kZGg==
+X-Cache: CONFIG_NOCACHE
+X-MSEdge-Ref: Ref A: 2458C60EEEF6496E89B5654E9C40A5BA Ref B: IST30EDGE0409 Ref C: 2024-12-23T17:23:05Z
+Date: Mon, 23 Dec 2024 17:23:05 GMT
+Content-Length: 0
+

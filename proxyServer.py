@@ -12,28 +12,39 @@ PROXY_PORT = 8888         # Port for the proxy
 BUFFER_SIZE = 4096
 MAX_URI_SIZE = 9999
 
-def extract_host_and_port(request_line):
+def extract_host_and_port(url):
     # ex GET http://example.com:8080/path/to/resource HTTP/1.1
-    parsed_url = urlparse(request_line.split()[1]) 
-    hostname = parsed_url.hostname
-    port = parsed_url.port if parsed_url.port else (443 if parsed_url.scheme == "https" else 80)
-    path = parsed_url.path if parsed_url.path else "/"
-    return hostname, port, path
+    # Parse the host and path
+    url_parts = url[7:].split("/", 1)
+    host_port = url_parts[0].split(":")
+    host = host_port[0]
+    port = int(host_port[1]) if len(host_port) == 2 else 80
+    path = "/" + url_parts[1] if len(url_parts) > 1 else "/"
+    return host, port, path
 
 
 def handle_client(client_socket, cache):
     """Handles communication between the client and the main server."""
     try:
         # Receive the client's request
-        client_request = client_socket.recv(BUFFER_SIZE).decode()
+        client_request = client_socket.recv(BUFFER_SIZE)
         if not client_request:
             client_socket.close()
             return
 
+        # Extract the host and port from the request headers
+        request_lines = client_request.split(b'\r\n')
+        first_line = request_lines[0].decode()
+        method, url, _ = first_line.split()
+
+        # Only handle HTTP requests (not HTTPS)
+        if not url.startswith("http://"):
+            client_socket.sendall(b"HTTP/1.1 400 Bad Request\r\n\r\nOnly HTTP is supported.")
+            client_socket.close()
+            return
 
         print(f"Received request from client: {client_request}\n")
-        client_request_splitted = client_request.splitlines()[0]
-        hostname, port, path = extract_host_and_port(client_request_splitted)
+        hostname, port, path = extract_host_and_port(url)
 
         if len(path) > MAX_URI_SIZE:
             raise HTTPErrorResponse(414, "Request-URI Too Long", ErrorMessages.INVALID_URL_SIZE)
@@ -48,22 +59,37 @@ def handle_client(client_socket, cache):
         
         print(f"Cache miss: {cache_key}. Forwarding request to {hostname}:{port}")
 
+        # Check if the request is for the local server
+        if hostname == "localhost":
+            target_host = "127.0.0.1"
+        else:
+            target_host = hostname
+
         # Forward the request to the main server
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as main_server_socket:
-            main_server_socket.connect((hostname, port))
-            main_server_socket.sendall(client_request.encode())
-        
+            main_server_socket.connect((target_host, port))
+            if hostname != "localhost":
+                client_request = client_request.replace(url.encode(), path.encode())
+            main_server_socket.sendall(client_request)
             # Receive the response from the main server
-            server_response = main_server_socket.recv(BUFFER_SIZE)
             
+            
+            full_response = b""
+            while True:
+                server_response = main_server_socket.recv(BUFFER_SIZE)
+                if not server_response:
+                    break
+                full_response += server_response
             # add the server response to the cache
-            cache.insert_into_cache(cache_key, server_response)
+            cache.insert_into_cache(cache_key, full_response)
+            
 
             # Print the server response for debugging purposes
             try:
                 print(f"Server response:\n{server_response.decode()}\n")  # Decode if it's text
             except UnicodeDecodeError:
                 print(f"Server response (raw bytes): {server_response}\n")  # Print raw bytes if decoding fails
+            
 
             # Send the response back to the client
             client_socket.sendall(server_response)

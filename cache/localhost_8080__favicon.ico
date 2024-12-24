@@ -1,0 +1,33 @@
+HTTP/1.1 400 Bad Request
+Content-Type: text/html
+Content-Length: 734
+
+
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Error 400</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    background-color: #f8d7da;
+                    color: #721c24;
+                    padding: 20px;
+                    text-align: center;
+                }
+                h1 {
+                    font-size: 48px;
+                }
+                p {
+                    font-size: 20px;
+                }
+            </style>
+        </head>
+        <body>
+            <h1>Error 400</h1>
+            <p>Bad Request</p>
+            <p>Url size format should be numeric</p>
+            
+        </body>
+        </html>
+        
