@@ -77,8 +77,8 @@ def handle_client(client_socket, cache):
             # print("Level 2")
                 # print("Level 3")
             server_response = main_server_socket.recv(BUFFER_SIZE)
-            if not server_response:
-                return 
+            # if not server_response:
+            #    return 
 
             # add the server response to the cache
             print("Level 4")
