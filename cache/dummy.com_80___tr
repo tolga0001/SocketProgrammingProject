@@ -1,9 +1,0 @@
-HTTP/1.1 200 OK
-date: Wed, 25 Dec 2024 13:01:45 GMT
-content-type: application/json; charset=utf-8
-content-length: 2
-x-request-id: a6bef552-da41-494a-b670-8345dd26827f
-set-cookie: parking_session=a6bef552-da41-494a-b670-8345dd26827f; expires=Wed, 25 Dec 2024 13:16:46 GMT; path=/
-connection: close
-
-ok
