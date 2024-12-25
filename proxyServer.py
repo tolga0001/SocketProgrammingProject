@@ -74,14 +74,15 @@ def handle_client(client_socket, cache):
             # Receive the response from the main server
             
             
-            full_response = b""
-            while True:
-                server_response = main_server_socket.recv(BUFFER_SIZE)
-                if not server_response:
-                    break
-                full_response += server_response
+            # print("Level 2")
+                # print("Level 3")
+            server_response = main_server_socket.recv(BUFFER_SIZE)
+            if not server_response:
+                return 
+
             # add the server response to the cache
-            cache.insert_into_cache(cache_key, full_response)
+            print("Level 4")
+            cache.insert_into_cache(cache_key, server_response)
             
 
             # Print the server response for debugging purposes
