@@ -9,7 +9,8 @@ from lruCache import LRUCache
 # Proxy server configuration
 PROXY_HOST = '127.0.0.1'  # Localhost for the proxy
 PROXY_PORT = 8888         # Port for the proxy
-BUFFER_SIZE = 4096
+
+BUFFER_SIZE = 999999999
 MAX_URI_SIZE = 9999
 
 def extract_host_and_port(url):
@@ -53,6 +54,7 @@ def handle_client(client_socket, cache):
         cached_response = cache.retreive_from_cache(cache_key)
         if cached_response:
             print(f"Cache hit: {cache_key}")
+            print(cached_response)
             client_socket.sendall(cached_response)
             client_socket.close()
             return
@@ -65,20 +67,29 @@ def handle_client(client_socket, cache):
         else:
             target_host = hostname
 
+        # Modify the request to use HTTP/1.0
+        http_10_request = f"{method} {path} HTTP/1.0\r\nHost: {target_host}\r\n\r\n"
+        http_10_request = http_10_request.encode()
+
         # Forward the request to the main server
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as main_server_socket:
             main_server_socket.connect((target_host, port))
             if hostname != "localhost":
                 client_request = client_request.replace(url.encode(), path.encode())
-            main_server_socket.sendall(client_request)
+            main_server_socket.sendall(http_10_request)
             # Receive the response from the main server
             
             
             # print("Level 2")
-                # print("Level 3")
-            server_response = main_server_socket.recv(BUFFER_SIZE)
-            # if not server_response:
-            #    return 
+            print("Level 3")
+        
+            
+            server_response = b""
+            while True:
+                chunk = main_server_socket.recv(BUFFER_SIZE)
+                if not chunk:
+                    break
+                server_response += chunk
 
             # add the server response to the cache
             print("Level 4")
