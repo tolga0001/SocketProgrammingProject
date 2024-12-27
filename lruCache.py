@@ -18,6 +18,7 @@ class LRUCache:
             # move to the end to mark as recently used
             self.cache.move_to_end(key)
             path = os.path.join(CACHE_DIR, key)
+            print(f" path is {path}")
             if os.path.exists(path):
                 with open(path, "rb") as f:
                     return f.read()
@@ -25,6 +26,7 @@ class LRUCache:
 
     def insert_into_cache(self, key, data):
         """ add data to the cache with LRU eviction """
+        print("28")
         if key in self.cache:
             self.cache.move_to_end(key)
         elif len(self.cache) >= self.capacity:
@@ -34,6 +36,7 @@ class LRUCache:
             print(f"Evicting {old_key} from cache due to size limit.")
 
         # add new data to cache
+        print(f"key is {key}")
         self.cache[key] = True
         with open(os.path.join(CACHE_DIR, key), "wb") as file:
             file.write(data)

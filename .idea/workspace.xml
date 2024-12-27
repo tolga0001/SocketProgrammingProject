@@ -4,7 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e6a19303-97d9-4e93-b1d8-4d4a28f0c9b1" name="Changes" comment="" />
+    <list default="true" id="e6a19303-97d9-4e93-b1d8-4d4a28f0c9b1" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lruCache.py" beforeDir="false" afterPath="$PROJECT_DIR$/lruCache.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/proxyServer.py" beforeDir="false" afterPath="$PROJECT_DIR$/proxyServer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tcpClientHandler.py" beforeDir="false" afterPath="$PROJECT_DIR$/tcpClientHandler.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -37,6 +42,7 @@
   &quot;keyToString&quot;: {
     &quot;Python.errorMessages.executor&quot;: &quot;Run&quot;,
     &quot;Python.exceptions.executor&quot;: &quot;Run&quot;,
+    &quot;Python.lruCache.executor&quot;: &quot;Run&quot;,
     &quot;Python.main.executor&quot;: &quot;Run&quot;,
     &quot;Python.mainServer.executor&quot;: &quot;Run&quot;,
     &quot;Python.proxyServer.executor&quot;: &quot;Run&quot;,
@@ -73,6 +79,11 @@
           <url>file://$PROJECT_DIR$/webServer.py</url>
           <line>28</line>
           <option name="timeStamp" value="10" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/proxyServer.py</url>
+          <line>113</line>
+          <option name="timeStamp" value="11" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
