@@ -5,13 +5,16 @@ import sys
 from exceptions import HTTPErrorResponse
 from urllib.parse import urlparse
 from lruCache import LRUCache
-
+import re
 # Proxy server configuration
 PROXY_HOST = '127.0.0.1'  # Localhost for the proxy
 PROXY_PORT = 8888         # Port for the proxy
 
 BUFFER_SIZE = 999999999
 MAX_URI_SIZE = 9999
+
+def sanitize_key(key):
+    return re.sub(r'[<>:"/\\|?*]', '_', key)
 
 def extract_host_and_port(url):
     # ex GET http://example.com:8080/path/to/resource HTTP/1.1
@@ -23,7 +26,6 @@ def extract_host_and_port(url):
     path = "/" + url_parts[1] if len(url_parts) > 1 else "/"
     return host, port, path
 
-
 def handle_client(client_socket, cache):
     """Handles communication between the client and the main server."""
     try:
@@ -32,25 +34,26 @@ def handle_client(client_socket, cache):
         if not client_request:
             client_socket.close()
             return
-
         # Extract the host and port from the request headers
         request_lines = client_request.split(b'\r\n')
         first_line = request_lines[0].decode()
         method, url, _ = first_line.split()
-
         # Only handle HTTP requests (not HTTPS)
         if not url.startswith("http://"):
             client_socket.sendall(b"HTTP/1.1 400 Bad Request\r\n\r\nOnly HTTP is supported.")
             client_socket.close()
             return
-
         print(f"Received request from client: {client_request}\n")
         hostname, port, path = extract_host_and_port(url)
-
-        if len(path) > MAX_URI_SIZE:
+        if len(url) > MAX_URI_SIZE:
+            error_response = (
+                b"HTTP/1.1 414 Request-URI Too Long\r\n"
+                b"Content-Type: text/plain\r\n\r\n"
+                b"Request-URI Too Long. Please check the URL and try again."
+            )
+            client_socket.sendall(error_response)
             raise HTTPErrorResponse(414, "Request-URI Too Long", ErrorMessages.INVALID_URL_SIZE)
-        
-        cache_key = f"{hostname}_{port}_{path.replace('/', '_')}"
+        cache_key =  sanitize_key(f"{hostname}_{port}_{path.replace('/', '_')}")
         cached_response = cache.retreive_from_cache(cache_key)
         if cached_response:
             print(f"Cache hit: {cache_key}")
@@ -58,51 +61,41 @@ def handle_client(client_socket, cache):
             client_socket.sendall(cached_response)
             client_socket.close()
             return
-        
         print(f"Cache miss: {cache_key}. Forwarding request to {hostname}:{port}")
-
         # Check if the request is for the local server
         if hostname == "localhost":
             target_host = "127.0.0.1"
         else:
             target_host = hostname
-
         # Modify the request to use HTTP/1.0
         http_10_request = f"{method} {path} HTTP/1.0\r\nHost: {target_host}\r\n\r\n"
         http_10_request = http_10_request.encode()
-
         # Forward the request to the main server
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as main_server_socket:
-            main_server_socket.connect((target_host, port))
-            if hostname != "localhost":
-                client_request = client_request.replace(url.encode(), path.encode())
-            main_server_socket.sendall(http_10_request)
-            # Receive the response from the main server
-            
-            
-            # print("Level 2")
-            print("Level 3")
-        
-            
-            server_response = b""
-            while True:
-                chunk = main_server_socket.recv(BUFFER_SIZE)
-                if not chunk:
-                    break
-                server_response += chunk
-
-            # add the server response to the cache
-            print("Level 4")
-            cache.insert_into_cache(cache_key, server_response)
-            
-
-            # Print the server response for debugging purposes
             try:
-                print(f"Server response:\n{server_response.decode()}\n")  # Decode if it's text
-            except UnicodeDecodeError:
-                print(f"Server response (raw bytes): {server_response}\n")  # Print raw bytes if decoding fails
-            
-
+                main_server_socket.connect((target_host, port))
+                if hostname != "localhost":
+                    client_request = client_request.replace(url.encode(), path.encode())
+                main_server_socket.sendall(http_10_request)
+                # Receive the response from the main server
+                server_response = b""
+                while True:
+                    chunk = main_server_socket.recv(BUFFER_SIZE)
+                    if not chunk:
+                        break
+                    server_response += chunk
+                # add the server response to the cache
+                cache.insert_into_cache(cache_key, server_response)
+                # Print the server response for debugging purposes
+                try:
+                    print(f"Server response:\n{server_response.decode()}\n")  # Decode if it's text
+                except UnicodeDecodeError:
+                    print(f"Server response (raw bytes): {server_response}\n")  # Print raw bytes if decoding fails
+            except (ConnectionRefusedError, socket.gaierror, TimeoutError):
+                # Handle connection errors by returning a 404 Not Found response
+                error_response = b"HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\nWeb Server is not running."
+                client_socket.sendall(error_response)
+                print(f"Error: Could not connect to {target_host}:{port}. Returned 404 to client.")
             # Send the response back to the client
             client_socket.sendall(server_response)
     except Exception as e:

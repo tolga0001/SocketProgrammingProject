@@ -11,7 +11,6 @@ class LRUCache:
 
         if not os.path.exists(CACHE_DIR):
             os.makedirs(CACHE_DIR)
-
     def retreive_from_cache(self, key):
         """ retrieve data from the cache."""
         if key in self.cache:
