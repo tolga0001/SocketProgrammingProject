@@ -1,7 +1,7 @@
 from errorMessages import ErrorMessages
 from exceptions import BadRequestException, NotImplementedException, HTTPErrorResponse
 
-
+recognized_methods = ['POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH', 'TRACE', 'CONNECT']
 class RequestHandler:
     def __init__(self, URI) -> None:
         try:
@@ -37,8 +37,10 @@ class RequestHandler:
         
     def is_request_message_valid(self, URI):
         URI_message = URI.split(" ")[0]
-        if URI_message != "GET":
+        if URI_message != "GET" and URI_message in recognized_methods:
             raise NotImplementedException()
+        elif URI_message != "GET" and URI_message not in recognized_methods:
+            raise BadRequestException(ErrorMessages.UNRECOGNIZED_METHOD)
         else:
             return True
 
