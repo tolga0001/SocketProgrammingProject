@@ -6,3 +6,5 @@ class ErrorMessages(Enum):
     NOT_IMPLEMENTED = "The request type should be get"
     INVALID_PORT_NUMBER = "Port number should be between 1024 and 65535"
     UNRECOGNIZED_METHOD = "Invalid method"
+    REQUEST_URI_TOO_LONG = "Request-URI Too Long. Please check the URL and try again."
+    NOT_FOUND = "Web Server is not running."

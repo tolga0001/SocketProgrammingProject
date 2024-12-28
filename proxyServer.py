@@ -34,6 +34,7 @@ def handle_client(client_socket, cache):
         if not client_request:
             client_socket.close()
             return
+        
         # Extract the host and port from the request headers
         request_lines = client_request.split(b'\r\n')
         first_line = request_lines[0].decode()
@@ -45,14 +46,17 @@ def handle_client(client_socket, cache):
             return
         print(f"Received request from client: {client_request}\n")
         hostname, port, path = extract_host_and_port(url)
-        if len(url) > MAX_URI_SIZE:
+        print(path)
+        if hostname== 'localhost' and int(path[1:]) > MAX_URI_SIZE:
+            error_string = ErrorMessages.REQUEST_URI_TOO_LONG
             error_response = (
                 b"HTTP/1.1 414 Request-URI Too Long\r\n"
-                b"Content-Type: text/plain\r\n\r\n"
+                b"Content-Type: text/plain\r\n\r\n" +
                 b"Request-URI Too Long. Please check the URL and try again."
             )
+
             client_socket.sendall(error_response)
-            raise HTTPErrorResponse(414, "Request-URI Too Long", ErrorMessages.INVALID_URL_SIZE)
+            raise HTTPErrorResponse(414, "Request-URI Too Long", ErrorMessages.REQUEST_URI_TOO_LONG)
         cache_key =  sanitize_key(f"{hostname}_{port}_{path.replace('/', '_')}")
         cached_response = cache.retreive_from_cache(cache_key)
         if cached_response:
@@ -93,7 +97,7 @@ def handle_client(client_socket, cache):
                     print(f"Server response (raw bytes): {server_response}\n")  # Print raw bytes if decoding fails
             except (ConnectionRefusedError, socket.gaierror, TimeoutError):
                 # Handle connection errors by returning a 404 Not Found response
-                error_response = b"HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\nWeb Server is not running."
+                error_response = b"HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\n"+"Web Server is not running."
                 client_socket.sendall(error_response)
                 print(f"Error: Could not connect to {target_host}:{port}. Returned 404 to client.")
             # Send the response back to the client
@@ -135,6 +139,15 @@ if __name__ == "__main__":
             if 1024 <= port_number <= 65535:
                 start_proxy(port_number, PROXY_HOST, cache_size)
             else:
+                error_response = (
+                    b"HTTP/1.1 400 Bad Reqeuest\r\n"
+                    b"Content-Type: text/plain\r\n\r\n"+
+                    b"Port number should be between 1024 and 65535"
+                )
+                # Create a fake socket to send the error response to the client
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as fake_client_socket:
+                    fake_client_socket.connect((PROXY_HOST, port_number))
+                    fake_client_socket.sendall(error_response)
                 raise HTTPErrorResponse(400, "Bad Request", ErrorMessages.INVALID_PORT_NUMBER)
     except HTTPErrorResponse as e:
         print("HTTP Error:", f"{e.code} {e.error_type} {e.error_message.value}")
