@@ -48,15 +48,8 @@ def handle_client(client_socket, cache):
         hostname, port, path = extract_host_and_port(url)
         print(path)
         if hostname== 'localhost' and int(path[1:]) > MAX_URI_SIZE:
-            error_string = ErrorMessages.REQUEST_URI_TOO_LONG
-            error_response = (
-                b"HTTP/1.1 414 Request-URI Too Long\r\n"
-                b"Content-Type: text/plain\r\n\r\n" +
-                b"Request-URI Too Long. Please check the URL and try again."
-            )
-
-            client_socket.sendall(error_response)
             raise HTTPErrorResponse(414, "Request-URI Too Long", ErrorMessages.REQUEST_URI_TOO_LONG)
+        
         cache_key =  sanitize_key(f"{hostname}_{port}_{path.replace('/', '_')}")
         cached_response = cache.retreive_from_cache(cache_key)
         if cached_response:
@@ -97,11 +90,13 @@ def handle_client(client_socket, cache):
                     print(f"Server response (raw bytes): {server_response}\n")  # Print raw bytes if decoding fails
             except (ConnectionRefusedError, socket.gaierror, TimeoutError):
                 # Handle connection errors by returning a 404 Not Found response
-                error_response = b"HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\n"+"Web Server is not running."
-                client_socket.sendall(error_response)
-                print(f"Error: Could not connect to {target_host}:{port}. Returned 404 to client.")
+                raise HTTPErrorResponse(404, "Not Found", ErrorMessages.NOT_FOUND)
             # Send the response back to the client
             client_socket.sendall(server_response)
+    
+    except HTTPErrorResponse as e:
+        print(e)
+        client_socket.sendall(e.response.encode('utf-8'))
     except Exception as e:
         print(f"Error: {e}")
     finally:
