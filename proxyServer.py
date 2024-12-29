@@ -6,68 +6,90 @@ from exceptions import HTTPErrorResponse
 from urllib.parse import urlparse
 from lruCache import LRUCache
 import re
+
 # Proxy server configuration
 PROXY_HOST = '127.0.0.1'  # Localhost for the proxy
-PROXY_PORT = 8888         # Port for the proxy
-
-BUFFER_SIZE = 999999999
+BUFFER_SIZE = 8192  
 MAX_URI_SIZE = 9999
 
 def sanitize_key(key):
     return re.sub(r'[<>:"/\\|?*]', '_', key)
 
-def extract_host_and_port(url):
-    # ex GET http://example.com:8080/path/to/resource HTTP/1.1
-    # Parse the host and path
-    url_parts = url[7:].split("/", 1)
-    host_port = url_parts[0].split(":")
-    host = host_port[0]
-    port = int(host_port[1]) if len(host_port) == 2 else 80
-    path = "/" + url_parts[1] if len(url_parts) > 1 else "/"
+def extract_host_and_port(url, headers, localhost_port):
+    if url.startswith("http://"):
+        # Absolute URL (proxy açıkken)
+        parsed_url = urlparse(url)
+        host = parsed_url.hostname
+        port = parsed_url.port if parsed_url.port else 80  # Default http port value
+        path = parsed_url.path if parsed_url.path else "/"
+    else:
+       
+        if "Host" in headers:
+            host_header = headers["Host"]
+            if ":" in host_header:
+                host, port = host_header.split(":")
+                port = int(port)
+            else:
+                host = host_header
+                port = 80  
+        else:
+           
+            host = "localhost"
+            port = localhost_port
+        path = url if url.startswith("/") else f"/{url}"
+
     return host, port, path
 
-def handle_client(client_socket, cache):
+
+def parse_headers(request_lines):
+
+    headers = {}
+    for line in request_lines[1:]:  
+        if not line.strip():
+            break
+        key, value = line.decode().split(":", 1)
+        headers[key.strip()] = value.strip()
+    return headers
+
+def handle_client(client_socket, cache, proxy_port, localhost_port):
     """Handles communication between the client and the main server."""
     try:
-        # Receive the client's request
         client_request = client_socket.recv(BUFFER_SIZE)
         if not client_request:
             client_socket.close()
             return
         
-        # Extract the host and port from the request headers
         request_lines = client_request.split(b'\r\n')
         first_line = request_lines[0].decode()
         method, url, _ = first_line.split()
-        # Only handle HTTP requests (not HTTPS)
-        if not url.startswith("http://"):
-            client_socket.sendall(b"HTTP/1.1 400 Bad Request\r\n\r\nOnly HTTP is supported.")
-            client_socket.close()
-            return
-        print(f"Received request from client: {client_request}\n")
-        hostname, port, path = extract_host_and_port(url)
-        print(path)
-        if hostname== 'localhost' and int(path[1:]) > MAX_URI_SIZE:
-            raise HTTPErrorResponse(414, "Request-URI Too Long", ErrorMessages.REQUEST_URI_TOO_LONG)
+        headers = parse_headers(request_lines)
+
+        hostname, port, path = extract_host_and_port(url, headers, localhost_port)
+
         
-        cache_key =  sanitize_key(f"{hostname}_{port}_{path.replace('/', '_')}")
+
+        cache_key = sanitize_key(f"{hostname}{port}{path.replace('/', '_')}")
         cached_response = cache.retreive_from_cache(cache_key)
+        
         if cached_response:
             print(f"Cache hit: {cache_key}")
             print(cached_response)
+
             client_socket.sendall(cached_response)
             client_socket.close()
             return
         print(f"Cache miss: {cache_key}. Forwarding request to {hostname}:{port}")
-        # Check if the request is for the local server
-        if hostname == "localhost":
-            target_host = "127.0.0.1"
-        else:
-            target_host = hostname
-        # Modify the request to use HTTP/1.0
-        http_10_request = f"{method} {path} HTTP/1.0\r\nHost: {target_host}\r\n\r\n"
-        http_10_request = http_10_request.encode()
-        # Forward the request to the main server
+        
+        
+        if hostname == "localhost" and port == proxy_port:
+            port = localhost_port
+            
+        if hostname== 'localhost' and int(path[1:]) > MAX_URI_SIZE:
+            raise HTTPErrorResponse(414, "Request-URI Too Long", ErrorMessages.REQUEST_URI_TOO_LONG)
+
+        target_host = "127.0.0.1" if hostname == "localhost" else hostname
+        http_10_request = f"{method} {path} HTTP/1.0\r\nHost: {target_host}\r\n\r\n".encode()
+
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as main_server_socket:
             try:
                 main_server_socket.connect((target_host, port))
@@ -93,7 +115,7 @@ def handle_client(client_socket, cache):
                 raise HTTPErrorResponse(404, "Not Found", ErrorMessages.NOT_FOUND)
             # Send the response back to the client
             client_socket.sendall(server_response)
-    
+
     except HTTPErrorResponse as e:
         print(e)
         client_socket.sendall(e.response.encode('utf-8'))
@@ -102,51 +124,43 @@ def handle_client(client_socket, cache):
     finally:
         client_socket.close()
 
-def start_proxy(port, hostname, cache_size):
+def start_proxy(port, hostname, cache_size, localhost_port):
     """Starts the proxy server."""
     cache = LRUCache(cache_size)
     
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as proxy_socket:
-        # proxy_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) what's that?
         proxy_socket.bind((hostname, port))
         proxy_socket.listen()
         print(f"Proxy server running on {hostname}:{port} with cache size {cache_size}...")
+        print(f"Forwarding to localhost on port {localhost_port}...")
 
         while True:
-            #print("Its waiting to take request...")
             client_socket, client_address = proxy_socket.accept()
-            #print(f"Accepted connection from {client_address}")
-            # Handle the client request in a new thread
-            client_thread = threading.Thread(target=handle_client, args=(client_socket, cache))
+            client_thread = threading.Thread(target=handle_client, args=(client_socket, cache, port, localhost_port))
             client_thread.start()
 
 if __name__ == "__main__":
-    #b) Your server program should take single argument which specifies the port number.
     try:
-        # Ensure the port number is passed as an argument
-        if len(sys.argv) != 3:
-            print("Usage: python proxyServer.py <port number> <cache size>")
+        # Argument count control
+        if len(sys.argv) < 3 or len(sys.argv) > 4:
+            print("Usage: python proxyServer.py <proxy port> <cache size> [<localhost port>]")
         else:
-            # Check if the port number is within the valid range (1024–65535)
-            port_number = int(sys.argv[1])
+          
+            proxy_port = int(sys.argv[1])
             cache_size = int(sys.argv[2])
-
-            if 1024 <= port_number <= 65535:
-                start_proxy(port_number, PROXY_HOST, cache_size)
+            localhost_port = 8080  # Default value
+            if len(sys.argv) == 4:
+                localhost_port = int(sys.argv[3])
+            if not (1024 <= proxy_port <= 65535):
+                print("Error: Proxy port must be in the range 1024–65535")
+            elif not (1024 <= localhost_port <= 65535):
+                print("Error: Localhost port must be in the range 1024–65535")
             else:
-                error_response = (
-                    b"HTTP/1.1 400 Bad Reqeuest\r\n"
-                    b"Content-Type: text/plain\r\n\r\n"+
-                    b"Port number should be between 1024 and 65535"
-                )
-                # Create a fake socket to send the error response to the client
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as fake_client_socket:
-                    fake_client_socket.connect((PROXY_HOST, port_number))
-                    fake_client_socket.sendall(error_response)
-                raise HTTPErrorResponse(400, "Bad Request", ErrorMessages.INVALID_PORT_NUMBER)
-    except HTTPErrorResponse as e:
-        print("HTTP Error:", f"{e.code} {e.error_type} {e.error_message.value}")
+                print(f"Starting proxy on port {proxy_port} with cache size {cache_size}...")
+                print(f"Forwarding requests to localhost:{localhost_port}")
+               
+                start_proxy(proxy_port, PROXY_HOST, cache_size, localhost_port)
     except ValueError:
-        print("Error: Invalid port number format. Please provide an integer.")
+        print("Error: Invalid port or cache size. Please provide integers.")
     except Exception as e:
-        print("Unexpected error:", str(e))
+        print(f"Unexpected error: {str(e)}")
