@@ -9,7 +9,7 @@ import re
 
 # Proxy server configuration
 PROXY_HOST = '127.0.0.1'  # Localhost for the proxy
-BUFFER_SIZE = 8192  # Daha uygun bir buffer boyutu
+BUFFER_SIZE = 8192  
 MAX_URI_SIZE = 9999
 
 def sanitize_key(key):
@@ -20,10 +20,10 @@ def extract_host_and_port(url, headers, localhost_port):
         # Absolute URL (proxy açıkken)
         parsed_url = urlparse(url)
         host = parsed_url.hostname
-        port = parsed_url.port if parsed_url.port else 80  # Varsayılan HTTP portu
+        port = parsed_url.port if parsed_url.port else 80  # Default http port value
         path = parsed_url.path if parsed_url.path else "/"
     else:
-        # Relative URL (proxy kapalıyken)
+       
         if "Host" in headers:
             host_header = headers["Host"]
             if ":" in host_header:
@@ -80,25 +80,45 @@ def handle_client(client_socket, cache, proxy_port, localhost_port):
             return
         print(f"Cache miss: {cache_key}. Forwarding request to {hostname}:{port}")
         
+        
         if hostname == "localhost" and port == proxy_port:
             port = localhost_port
+            
+        if hostname== 'localhost' and int(path[1:]) > MAX_URI_SIZE:
+            raise HTTPErrorResponse(414, "Request-URI Too Long", ErrorMessages.REQUEST_URI_TOO_LONG)
+
         target_host = "127.0.0.1" if hostname == "localhost" else hostname
         http_10_request = f"{method} {path} HTTP/1.0\r\nHost: {target_host}\r\n\r\n".encode()
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as main_server_socket:
-            main_server_socket.connect((target_host, port))
-            main_server_socket.sendall(http_10_request)
-
-            server_response = b""
-            while True:
-                chunk = main_server_socket.recv(BUFFER_SIZE)
-                if not chunk:
-                    break
-                server_response += chunk
-
-            cache.insert_into_cache(cache_key, server_response)
+            try:
+                main_server_socket.connect((target_host, port))
+                if hostname != "localhost":
+                    client_request = client_request.replace(url.encode(), path.encode())
+                main_server_socket.sendall(http_10_request)
+                # Receive the response from the main server
+                server_response = b""
+                while True:
+                    chunk = main_server_socket.recv(BUFFER_SIZE)
+                    if not chunk:
+                        break
+                    server_response += chunk
+                # add the server response to the cache
+                cache.insert_into_cache(cache_key, server_response)
+                # Print the server response for debugging purposes
+                try:
+                    print(f"Server response:\n{server_response.decode()}\n")  # Decode if it's text
+                except UnicodeDecodeError:
+                    print(f"Server response (raw bytes): {server_response}\n")  # Print raw bytes if decoding fails
+            except (ConnectionRefusedError, socket.gaierror, TimeoutError):
+                # Handle connection errors by returning a 404 Not Found response
+                raise HTTPErrorResponse(404, "Not Found", ErrorMessages.NOT_FOUND)
+            # Send the response back to the client
             client_socket.sendall(server_response)
 
+    except HTTPErrorResponse as e:
+        print(e)
+        client_socket.sendall(e.response.encode('utf-8'))
     except Exception as e:
         print(f"Error: {e}")
     finally:
@@ -121,22 +141,16 @@ def start_proxy(port, hostname, cache_size, localhost_port):
 
 if __name__ == "__main__":
     try:
-        # Argüman sayısı kontrolü (2 veya 3 olabilir)
+        # Argument count control
         if len(sys.argv) < 3 or len(sys.argv) > 4:
             print("Usage: python proxyServer.py <proxy port> <cache size> [<localhost port>]")
         else:
-            # Proxy port ve cache size değerlerini oku
+          
             proxy_port = int(sys.argv[1])
             cache_size = int(sys.argv[2])
-
-            # Varsayılan localhost portu
-            localhost_port = 8080  # Varsayılan değer
-
-            # Eğer üçüncü bir argüman girildiyse onu localhost_port olarak al
+            localhost_port = 8080  # Default value
             if len(sys.argv) == 4:
                 localhost_port = int(sys.argv[3])
-
-            # Port numaralarının geçerli aralıkta olup olmadığını kontrol et
             if not (1024 <= proxy_port <= 65535):
                 print("Error: Proxy port must be in the range 1024–65535")
             elif not (1024 <= localhost_port <= 65535):
@@ -144,7 +158,7 @@ if __name__ == "__main__":
             else:
                 print(f"Starting proxy on port {proxy_port} with cache size {cache_size}...")
                 print(f"Forwarding requests to localhost:{localhost_port}")
-                # Proxy sunucusunu başlat
+               
                 start_proxy(proxy_port, PROXY_HOST, cache_size, localhost_port)
     except ValueError:
         print("Error: Invalid port or cache size. Please provide integers.")
