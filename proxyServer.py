@@ -66,17 +66,22 @@ def handle_client(client_socket, cache, proxy_port, localhost_port):
 
         hostname, port, path = extract_host_and_port(url, headers, localhost_port)
 
-        # Eğer hedef proxy portuysa, localhost_port'a yönlendir
-        if hostname == "localhost" and port == proxy_port:
-            port = localhost_port
+        
 
         cache_key = sanitize_key(f"{hostname}{port}{path.replace('/', '_')}")
         cached_response = cache.retreive_from_cache(cache_key)
+        
         if cached_response:
+            print(f"Cache hit: {cache_key}")
+            print(cached_response)
+
             client_socket.sendall(cached_response)
             client_socket.close()
             return
-
+        print(f"Cache miss: {cache_key}. Forwarding request to {hostname}:{port}")
+        
+        if hostname == "localhost" and port == proxy_port:
+            port = localhost_port
         target_host = "127.0.0.1" if hostname == "localhost" else hostname
         http_10_request = f"{method} {path} HTTP/1.0\r\nHost: {target_host}\r\n\r\n".encode()
 
